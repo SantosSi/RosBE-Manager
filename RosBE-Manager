@@ -1,8 +1,8 @@
 #!/bin/bash
-# Purpose: Prepare ReactOS sources for compilation on a Linux system
+
+# Prepare ReactOS sources for compilation on a Linux system
+# Version: 0.9.1 2018-03-05
 # Author: Silvério Santos
-# ToDos:
-#  Translate strings
 
 # Name of the folder to download into
 dlfolder=downloads
@@ -29,7 +29,6 @@ chkReactos(){
             git clone https://github.com/reactos/reactos.git
             return 0;
         else
-            echo "Not Git cloning ReactOS."
             return 1;
         fi
     fi
@@ -73,6 +72,7 @@ chkDlFolder(){
 
 # Create optional modules folder if it does not exist
 chkModulesFolder(){
+    chkReactos
     if [ ! -d ${optmodules}/ ]; then
         mkdir ${optmodules}/;
     fi
@@ -82,6 +82,7 @@ chkModulesFolder(){
 getRosbe(){
     # Only download if file not exists
     if [ ! -e ${dlfolder}/RosBE-Unix-2.1.2.tar.bz2 ]; then
+        chkDlFolder
         cd ${dlfolder}
         wget https://downloads.sourceforge.net/reactos/RosBE-Unix-2.1.2.tar.bz2
         cd ..;
@@ -102,7 +103,14 @@ getGecko(){
         cd ${optmodules}
         wget http://dl.winehq.org/wine/wine-gecko/2.40/wine_gecko-2.40-x86.msi;
     fi
-    echo "Done."
+}
+
+# For integration into image: remove Gecko file
+remGecko(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/wine_gecko-2.40-x86.msi ]; then
+        rm ${optmodules}/wine_gecko-2.40-x86.msi
+    fi
 }
 
 # For integration into image: get MFC files
@@ -216,14 +224,34 @@ ClearDls(){
     rm -r ${dlfolder};
 }
 
+# Menu for optional modules
+menuOptMods(){
+    until [ "$choiceOM" = "Back" ]; do
+        choiceOM=$(whiptail --title "Optional modules" --menu "Choose what module to add" 25 78 16 \
+        "Back"         "<<Back to main module." \
+        "Add Gecko"    "Add Wine Gecko." \
+        "Remove Gecko" "Remove Wine Gecko." \
+        "Add MFC"      "Add Microsoft Foundation classes." \
+        "Add NetKVM"   "Add VirtIO network drivers." \
+        "Add VB5"      "Add Visual Basic 5." \
+        3>&2 2>&1 1>&3)
+        selectionOM=$(echo $choiceOM | sed 's/ //g')
+        case "${selectionOM}" in
+            "AddGecko")    getGecko;;
+            "RemoveGecko") remGecko;;
+            "AddMFC")      getMfc;;
+            "AddNetKVM")   getNetkvm;;
+            "AddVB5")      getVb5;;
+        esac
+    done
+    choiceOM=""
+}
+
 # Main menu
 menuMain(){
     choice=$(whiptail --title "Prepare ReactOS compilation" --menu "Choose an option" 25 78 16 \
+    "Optional modules" "Add optional modules." \
     "Add RosBE"    "Add ReactOS Build Environment." \
-    "Add Gecko"    "Add Wine Gecko." \
-    "Add MFC"      "Add Microsoft Foundation classes." \
-    "Add NetKVM"   "Add VirtIO network drivers." \
-    "Add VB5"      "Add Visual Basic 5." \
     "Build Docker" "Build RosBE Docker image." \
     "Run Docker"   "Run RosBE Docker build environment." \
     "Clear DLs"    "Clear downloads folder" \
@@ -232,16 +260,13 @@ menuMain(){
 
     selection=$(echo $choice | sed 's/ //g')
     case "${selection}" in
+        "Optionalmodules") menuOptMods;;
         "AddRosBE")    getRosbe;;
-        "AddGecko")    getGecko;;
-        "AddMFC")      getMfc;;
-        "AddNetKVM")   getNetkvm;;
-        "AddVB5")      getVb5;;
         "BuildDocker") buildDockerImg;;
         "RunDocker")   runDockerImg;;
         "ClearDLs")    ClearDls;;
         "Exit")        exit 0;;
-    esac    
+    esac
     return $?
 }
 

@@ -1,8 +1,8 @@
 #!/bin/bash
-# Purpose: Prepare ReactOS sources for compilation on a Linux system
+
+# Prepare ReactOS sources for compilation on a Linux system
+# Version: 0.9 2018-03-04
 # Author: Silvério Santos
-# ToDos:
-#  Translate strings
 
 # Name of the folder to download into
 dlfolder=downloads

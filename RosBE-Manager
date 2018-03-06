@@ -83,9 +83,7 @@ getRosbe(){
     # Only download if file not exists
     if [ ! -e ${dlfolder}/RosBE-Unix-2.1.2.tar.bz2 ]; then
         chkDlFolder
-        cd ${dlfolder}
-        wget https://downloads.sourceforge.net/reactos/RosBE-Unix-2.1.2.tar.bz2
-        cd ..;
+        wget -P ${dlfolder} https://downloads.sourceforge.net/reactos/RosBE-Unix-2.1.2.tar.bz2
     fi
 }
 
@@ -100,8 +98,7 @@ getGecko(){
         whiptail --title "File already exists" --msgbox "Wine Gecko file already exists. To re-download delete file." 8 78;
     else
         chkModulesFolder
-        cd ${optmodules}
-        wget http://dl.winehq.org/wine/wine-gecko/2.40/wine_gecko-2.40-x86.msi;
+        wget -P ${optmodules} http://dl.winehq.org/wine/wine-gecko/2.40/wine_gecko-2.40-x86.msi;
     fi
 }
 
@@ -123,18 +120,28 @@ getMfc(){
     # Only download if file not existing
     if [ ! -e ${dlfolder}/vc6redistsetup_deu.exe ]; then
         chkDlFolder
-        cd ${dlfolder}
-        wget download.microsoft.com/download/vc60pro/update/2/w9xnt4/en-us/vc6redistsetup_deu.exe;
-        cd ..
+        wget -P ${dlfolder} download.microsoft.com/download/vc60pro/update/2/w9xnt4/en-us/vc6redistsetup_deu.exe;
     fi
     if [ ! -d ${dlfolder}/extractmfc ]; then
         mkdir -p ${dlfolder}/extractmfc;
     fi
     cabextract -d ${dlfolder}/extractmfc ${dlfolder}/vc6redistsetup_deu.exe
-    cabextract -Ld ${dlfolder}/extractmfc ${dlfolder}/extractmfc/vcredist.exe
-    cp  ${dlfolder}/extractmfc/mfc42.dll ${optmodules}/
-    cp  ${dlfolder}/extractmfc/mfc42u.dll ${optmodules}/
-    cp  ${dlfolder}/extractmfc/msvcirt.dll ${optmodules}/
+    cabextract -Ld ${optmodules} -F mfc42*.dll ${dlfolder}/extractmfc/vcredist.exe
+    cabextract -Ld ${optmodules} -F msvcirt.dll ${dlfolder}/extractmfc/vcredist.exe
+}
+
+# For integration into image: remove MFC files
+remMfc(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/mfc42.dll ]; then
+        rm ${optmodules}/mfc42.dll
+    fi
+    if [ -e ${optmodules}/mfc42u.dll ]; then
+        rm ${optmodules}/mfc42u.dll
+    fi
+    if [ -e ${optmodules}/msvcirt.dll ]; then
+        rm ${optmodules}/msvcirt.dll
+    fi
 }
 
 # For integration into image: get NetKVM
@@ -147,16 +154,19 @@ getNetkvm(){
     # Only download if file not existing
     if [ ! -e ${dlfolder}/virtio-win_x86.vfd ]; then
         chkDlFolder
-        cd ${dlfolder}
-        wget https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win_x86.vfd
-        cd ..
+        wget -P ${dlfolder} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win_x86.vfd
     fi
     whiptail --title "Root rights" --msgbox "Administrative rights needed to loop mount driver disk and extract files. You might have to enter your password to grant the mount command sudo rights. Press Enter to continue." 8 78
     sudo mount -o loop ${dlfolder}/virtio-win*_x86.vfd /mnt
     cp /mnt/i386/WinXP/netkvm* ${optmodules}/
-    mv ${optmodules}/netkvm.inf ${optmodules}/netkvm2k.inf
-    mv ${optmodules}/netkvm.cat ${optmodules}/netkvm2k.cat
+    cp ${optmodules}/netkvm.inf ${optmodules}/netkvm2k.inf
+    cp ${optmodules}/netkvm.cat ${optmodules}/netkvm2k.cat
     sudo umount /mnt
+}
+
+# For integration into image: remove NetKVM files
+remNetkvm(){
+    rm ${optmodules}/netkvm*
 }
 
 # For integration into image: Get Visual Basic 5 files
@@ -165,22 +175,49 @@ getVb5(){
     if [ $? = 1  ]; then
         return 1 
     fi
+    chkModulesFolder
+    # Only download if file not existing
+    if [ ! -e ${dlfolder}/msvbvm50.exe ]; then
+        chkDlFolder
+        wget -P ${dlfolder} download.microsoft.com/download/vb50pro/utility/1/win98/en-us/msvbvm50.exe
+    fi
+    cabextract -Ld ${optmodules} -F msvbvm50.dll ${dlfolder}/msvbvm50.exe
+}
+
+# For integration into image: remove VB5 file
+remVb5(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/msvbvm50.dll ]; then
+        rm ${optmodules}/msvbvm50.dll
+    fi
+}
+
+# For integration into image: Get Visual Basic 6 files
+getVb6(){
+    chkReactos
     if [ $? = 1  ]; then
         return 1 
     fi
     chkModulesFolder
     # Only download if file not existing
-    if [ ! -e ${dlfolder}/msvbvm50.exe ]; then
+    if [ ! -e ${dlfolder}/VB6.0-KB290887-X86.exe ]; then
         chkDlFolder
-        cd ${dlfolder}
-        wget download.microsoft.com/download/vb50pro/utility/1/win98/en-us/msvbvm50.exe
-        cd ..
+        wget -P ${dlfolder} download.microsoft.com/download/5/a/d/5ad868a0-8ecd-4bb0-a882-fe53eb7ef348/VB6.0-KB290887-X86.exe        
     fi
-    if [ ! -d ${dlfolder}/extractvb5 ]; then
-        mkdir ${dlfolder}/extractvb5
+    extFldr=${dlfolder}/extractvb6
+    if [ ! -d ${extFldr} ]; then
+        mkdir ${extFldr}
     fi
-    cabextract -Ld ${dlfolder}/extractvb5 ${dlfolder}/msvbvm50.exe
-    cp ${dlfolder}/extractvb5/msvbvm50.dll ${optmodules}/
+    cabextract -Ld ${extFldr} ${dlfolder}/VB6.0-KB290887-X86.exe
+    cabextract -Ld ${optmodules} -F msvbvm60.dll ${extFldr}/vbrun60sp6.exe
+}
+
+# For integration into image: remove VB6 file
+remVb6(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/msvbvm60.dll ]; then
+        rm ${optmodules}/msvbvm60.dll
+    fi
 }
 
 # Build a Docker image with the RosBE environment
@@ -224,24 +261,70 @@ ClearDls(){
     rm -r ${dlfolder};
 }
 
-# Menu for optional modules
+# Adaptive menu for optional modules
 menuOptMods(){
     until [ "$choiceOM" = "Back" ]; do
-        choiceOM=$(whiptail --title "Optional modules" --menu "Choose what module to add" 25 78 16 \
-        "Back"         "<<Back to main module." \
-        "Add Gecko"    "Add Wine Gecko." \
-        "Remove Gecko" "Remove Wine Gecko." \
-        "Add MFC"      "Add Microsoft Foundation classes." \
-        "Add NetKVM"   "Add VirtIO network drivers." \
-        "Add VB5"      "Add Visual Basic 5." \
-        3>&2 2>&1 1>&3)
+        declare -a array=("Back" "<<Back to main module.")
+
+        # Wine Gecko
+        if [ -e ${optmodules}/wine_gecko-2.40-x86.msi ]; then
+            declare -a arrTmp=("Remove Gecko" "Remove Wine Gecko.")
+        else
+            declare -a arrTmp=("Add Gecko" "Add Wine Gecko.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+        
+        # MFC
+        if [ -e ${optmodules}/mfc42.dll ]; then
+            declare -a arrTmp=("Remove MFC" "Remove Microsoft Foundation classes.")
+        else
+            declare -a arrTmp=("Add MFC" "Add Microsoft Foundation classes.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+        
+        # NetKVM
+        if [ -e ${optmodules}/netkvm.sys ]; then
+            declare -a arrTmp=("Remove NetKVM" "Remove VirtIO network drivers.")
+        else
+            declare -a arrTmp=("Add NetKVM" "Add VirtIO network drivers.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+        
+        # VB5
+        if [ -e ${optmodules}/msvbvm50.dll ]; then
+            declare -a arrTmp=("Remove VB5" "Remove Visual Basic 5.")
+        else
+            declare -a arrTmp=("Add VB5" "Add Visual Basic 5.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+        
+        # VB6
+        if [ -e ${optmodules}/msvbvm60.dll ]; then
+            declare -a arrTmp=("Remove VB6" "Remove Visual Basic 6.")
+        else
+            declare -a arrTmp=("Add VB6" "Add Visual Basic 6.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+        
+        choiceOM=$(whiptail --title "Optional modules (adaptive)" --menu "Choose what module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
+
         selectionOM=$(echo $choiceOM | sed 's/ //g')
         case "${selectionOM}" in
-            "AddGecko")    getGecko;;
-            "RemoveGecko") remGecko;;
-            "AddMFC")      getMfc;;
-            "AddNetKVM")   getNetkvm;;
-            "AddVB5")      getVb5;;
+            "AddGecko")     getGecko;;
+            "RemoveGecko")  remGecko;;
+            "AddMFC")       getMfc;;
+            "RemoveMFC")    remMfc;;
+            "AddNetKVM")    getNetkvm;;
+            "RemoveNetKVM") remNetkvm;;
+            "AddVB5")       getVb5;;
+            "RemoveVB5")    remVb5;;
+            "AddVB6")       getVb6;;
+            "RemoveVB6")    remVb6;;
         esac
     done
     choiceOM=""
@@ -250,7 +333,7 @@ menuOptMods(){
 # Main menu
 menuMain(){
     choice=$(whiptail --title "Prepare ReactOS compilation" --menu "Choose an option" 25 78 16 \
-    "Optional modules" "Add optional modules." \
+    "Opt. modules" "Optional modules menu..." \
     "Add RosBE"    "Add ReactOS Build Environment." \
     "Build Docker" "Build RosBE Docker image." \
     "Run Docker"   "Run RosBE Docker build environment." \
@@ -260,7 +343,7 @@ menuMain(){
 
     selection=$(echo $choice | sed 's/ //g')
     case "${selection}" in
-        "Optionalmodules") menuOptMods;;
+        "Opt.modules") menuOptMods;;
         "AddRosBE")    getRosbe;;
         "BuildDocker") buildDockerImg;;
         "RunDocker")   runDockerImg;;

@@ -220,6 +220,42 @@ remVb6(){
     fi
 }
 
+# For integration into image: B57 GB Eth driver
+getB57(){
+    chkReactos
+    if [ $? = 1  ]; then
+        return 1 
+    fi
+    chkModulesFolder
+    # Only download if file not existing
+    if [ ! -e ${dlfolder}/b57xp32.sys ]; then
+        chkDlFolder
+        wget -P ${dlfolder} downloadmirror.intel.com/9109/eng/SE8500HW4_BCM57xx_win2k3_7100c.zip
+    fi
+    # unzip without folder structure stored in zip
+    unzip -jd ${optmodules} ${dlfolder}/SE8500HW4_BCM57xx_win2k3_7100c.zip
+}
+
+# For integration into image: B57 GB Eth driver
+remB57(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/b57win32.cat ]; then
+        rm ${optmodules}/b57win32.cat
+    fi
+    if [ -e ${optmodules}/b57win32.inf ]; then
+        rm ${optmodules}/b57win32.inf
+    fi
+    if [ -e ${optmodules}/b57xp32.sys ]; then
+        rm ${optmodules}/b57xp32.sys
+    fi
+    if [ -e ${optmodules}/b57xp32.sys ]; then
+        rm ${optmodules}/b57xp32.sys
+    fi
+    if [ -e ${optmodules}/release.txt ]; then
+        rm ${optmodules}/release.txt
+    fi
+}
+
 # Build a Docker image with the RosBE environment
 buildDockerImg(){
     chkDockerfile
@@ -311,6 +347,17 @@ menuOptMods(){
         array=( "${array[@]}" "${arrTmp[@]}" )
         arrTmp=""
         
+        # B57
+        if [ -e ${optmodules}/b57xp32.sys ]; then
+            declare -a arrTmp=("Remove B57" "Remove Broadcom NetXtreme (c) GB Ethernet driver.")
+        else
+            declare -a arrTmp=("Add B57" "Add Broadcom NetXtreme (c) GB Ethernet driver.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+
+        
+        # Display menu
         choiceOM=$(whiptail --title "Optional modules (adaptive)" --menu "Choose what module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
 
         selectionOM=$(echo $choiceOM | sed 's/ //g')
@@ -325,6 +372,8 @@ menuOptMods(){
             "RemoveVB5")    remVb5;;
             "AddVB6")       getVb6;;
             "RemoveVB6")    remVb6;;
+            "AddB57")       getB57;;
+            "RemoveB57")    remB57;;
         esac
     done
     choiceOM=""

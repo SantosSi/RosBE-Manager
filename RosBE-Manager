@@ -248,11 +248,35 @@ remB57(){
     if [ -e ${optmodules}/b57xp32.sys ]; then
         rm ${optmodules}/b57xp32.sys
     fi
-    if [ -e ${optmodules}/b57xp32.sys ]; then
-        rm ${optmodules}/b57xp32.sys
-    fi
     if [ -e ${optmodules}/release.txt ]; then
         rm ${optmodules}/release.txt
+    fi
+}
+
+# For integration into image: AC97 sound driver
+getAc97(){
+    chkReactos
+    if [ $? = 1  ]; then
+        return 1 
+    fi
+    chkModulesFolder
+    # Only download if file not existing
+    if [ ! -e ${dlfolder}/ac97_vbox.exe ]; then
+        chkDlFolder
+        wget -P ${dlfolder} svn.reactos.org/packages/ac97_vbox.exe
+    fi
+    7z e -o${optmodules} -ssc- -- ${dlfolder}/ac97_vbox.exe
+    mv ${optmodules}/Alcxwdm.sys ${optmodules}/alcxwdm.sys
+}
+
+# For integration into image: AC97 sound driver
+remAc97(){
+    # Only delete if file exists
+    if [ -e ${optmodules}/alcxwdm.sys ]; then
+        rm ${optmodules}/alcxwdm.sys
+    fi
+    if [ -e ${optmodules}/alcxwdm.inf ]; then
+        rm ${optmodules}/alcxwdm.inf
     fi
 }
 
@@ -356,7 +380,15 @@ menuOptMods(){
         array=( "${array[@]}" "${arrTmp[@]}" )
         arrTmp=""
 
-        
+        # AC97
+        if [ -e ${optmodules}/alcxwdm.sys ]; then
+            declare -a arrTmp=("Remove AC97" "Remove AC97 sound driver.")
+        else
+            declare -a arrTmp=("Add AC97" "Add AC97 sound driver.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+                
         # Display menu
         choiceOM=$(whiptail --title "Optional modules (adaptive)" --menu "Choose what module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
 
@@ -374,6 +406,8 @@ menuOptMods(){
             "RemoveVB6")    remVb6;;
             "AddB57")       getB57;;
             "RemoveB57")    remB57;;
+            "AddAC97")      getAc97;;
+            "RemoveAC97")   remAc97;;
         esac
     done
     choiceOM=""

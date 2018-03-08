@@ -78,6 +78,26 @@ chkModulesFolder(){
     fi
 }
 
+# Makes sure the reactos source files, optional modules
+# and download folders exist, checks if the file in the 
+# first parameter exists and if not downloads from the
+# URL in the second parameter
+dlIfNotExist(){
+    file=$1
+    url=$2
+    
+    chkReactos
+    if [ $? = 1  ]; then
+        return 1 
+    fi
+    chkModulesFolder
+    # Only download if file not existing
+    if [ ! -e ${dlfolder}/${file} ]; then
+        chkDlFolder
+        wget -P ${dlfolder} ${url};
+    fi
+}
+
 # Get Linux ReactOS Build environment
 getRosbe(){
     # Only download if file not exists
@@ -112,16 +132,7 @@ remGecko(){
 
 # For integration into image: get MFC files
 getMfc(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/vc6redistsetup_deu.exe ]; then
-        chkDlFolder
-        wget -P ${dlfolder} download.microsoft.com/download/vc60pro/update/2/w9xnt4/en-us/vc6redistsetup_deu.exe;
-    fi
+    dlIfNotExist "vc6redistsetup_deu.exe" "download.microsoft.com/download/vc60pro/update/2/w9xnt4/en-us/vc6redistsetup_deu.exe"
     if [ ! -d ${dlfolder}/extractmfc ]; then
         mkdir -p ${dlfolder}/extractmfc;
     fi
@@ -146,16 +157,7 @@ remMfc(){
 
 # For integration into image: get NetKVM
 getNetkvm(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/virtio-win_x86.vfd ]; then
-        chkDlFolder
-        wget -P ${dlfolder} https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win_x86.vfd
-    fi
+    dlIfNotExist "virtio-win_x86.vfd" "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win_x86.vfd" 
     whiptail --title "Root rights" --msgbox "Administrative rights needed to loop mount driver disk and extract files. You might have to enter your password to grant the mount command sudo rights. Press Enter to continue." 8 78
     sudo mount -o loop ${dlfolder}/virtio-win*_x86.vfd /mnt
     cp /mnt/i386/WinXP/netkvm* ${optmodules}/
@@ -171,16 +173,7 @@ remNetkvm(){
 
 # For integration into image: Get Visual Basic 5 files
 getVb5(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/msvbvm50.exe ]; then
-        chkDlFolder
-        wget -P ${dlfolder} download.microsoft.com/download/vb50pro/utility/1/win98/en-us/msvbvm50.exe
-    fi
+    dlIfNotExist "msvbvm50.exe" "download.microsoft.com/download/vb50pro/utility/1/win98/en-us/msvbvm50.exe"
     cabextract -Ld ${optmodules} -F msvbvm50.dll ${dlfolder}/msvbvm50.exe
 }
 
@@ -194,16 +187,7 @@ remVb5(){
 
 # For integration into image: Get Visual Basic 6 files
 getVb6(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/VB6.0-KB290887-X86.exe ]; then
-        chkDlFolder
-        wget -P ${dlfolder} download.microsoft.com/download/5/a/d/5ad868a0-8ecd-4bb0-a882-fe53eb7ef348/VB6.0-KB290887-X86.exe        
-    fi
+    dlIfNotExist "VB6.0-KB290887-X86.exe" "download.microsoft.com/download/5/a/d/5ad868a0-8ecd-4bb0-a882-fe53eb7ef348/VB6.0-KB290887-X86.exe"
     extFldr=${dlfolder}/extractvb6
     if [ ! -d ${extFldr} ]; then
         mkdir ${extFldr}
@@ -222,16 +206,7 @@ remVb6(){
 
 # For integration into image: B57 GB Eth driver
 getB57(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/b57xp32.sys ]; then
-        chkDlFolder
-        wget -P ${dlfolder} downloadmirror.intel.com/9109/eng/SE8500HW4_BCM57xx_win2k3_7100c.zip
-    fi
+    dlIfNotExist "b57xp32.sys" "downloadmirror.intel.com/9109/eng/SE8500HW4_BCM57xx_win2k3_7100c.zip"
     # unzip without folder structure stored in zip
     unzip -jd ${optmodules} ${dlfolder}/SE8500HW4_BCM57xx_win2k3_7100c.zip
 }
@@ -255,17 +230,8 @@ remB57(){
 
 # For integration into image: AC97 sound driver
 getAc97(){
-    chkReactos
-    if [ $? = 1  ]; then
-        return 1 
-    fi
-    chkModulesFolder
-    # Only download if file not existing
-    if [ ! -e ${dlfolder}/ac97_vbox.exe ]; then
-        chkDlFolder
-        wget -P ${dlfolder} svn.reactos.org/packages/ac97_vbox.exe
-    fi
-    7z e -o${optmodules} -ssc- -- ${dlfolder}/ac97_vbox.exe
+    dlIfNotExist "ac97_vbox.exe" "svn.reactos.org/packages/ac97_vbox.exe"
+    7z e -o${optmodules} ${dlfolder}/ac97_vbox.exe *lcxwdm.* -r
     mv ${optmodules}/Alcxwdm.sys ${optmodules}/alcxwdm.sys
 }
 

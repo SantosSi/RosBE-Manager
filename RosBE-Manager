@@ -1,13 +1,17 @@
 #!/bin/bash
 
 # Prepare ReactOS sources for compilation on a Linux system
-# Version: 0.9.1 2018-03-05
+# Version: 1.0 2018-03-13
 # Author: Silvério Santos
 
 # Name of the folder to download into
 dlfolder=downloads
 # Path to the optional modules
 optmodules=reactos/modules/optional/
+# RosBE file
+rosbeFile=RosBE-Unix-2.1.2.tar.bz2
+# Docker base image
+dckrBaseImg=ubuntu:16.04
 
 # Check for tools required by this script, POSIX compatible method
 chkScriptTools(){
@@ -38,7 +42,7 @@ chkReactos(){
 chkDockerfile(){
     if [ ! -e Dockerfile ]; then
         cat <<EOF > Dockerfile
-FROM ubuntu:16.04
+FROM $dckrBaseImg
 MAINTAINER Silverio Santos
 
 RUN apt-get update \
@@ -54,11 +58,10 @@ RUN apt-get update \
  texinfo \
  pkg-config \
  zlib1g-dev
-COPY RosBE-Unix-2.1.2.tar.bz2 .
-RUN tar xjf RosBE-Unix-2.1.2.tar.bz2
+COPY $dlfolder/$rosbeFile .
+RUN tar xjf $rosbeFile
 RUN cd RosBE-Unix-2.1.2 \
  && echo -e "\n\n"|./RosBE-Builder.sh
-COPY build-bootcd.sh .
 EOF
     fi
 }
@@ -101,9 +104,9 @@ dlIfNotExist(){
 # Get Linux ReactOS Build environment
 getRosbe(){
     # Only download if file not exists
-    if [ ! -e ${dlfolder}/RosBE-Unix-2.1.2.tar.bz2 ]; then
+    if [ ! -e ${dlfolder}/${rosbeFile} ]; then
         chkDlFolder
-        wget -P ${dlfolder} https://downloads.sourceforge.net/reactos/RosBE-Unix-2.1.2.tar.bz2
+        wget -P ${dlfolder} https://downloads.sourceforge.net/reactos/${rosbeFile}
     fi
 }
 
@@ -255,11 +258,24 @@ buildDockerImg(){
             return 1 
         fi
         getRosbe
-        whiptail --title "Building Docker image" --infobox "This will take a while." 8 78
+        whiptail --title "Building Docker image" --msgbox "This will take a while." 8 78
         docker build -t sisantos/rosbe-dckr .;
     else
         whiptail --title "No Dockerfile" --msgbox "No Dockerfile found, needed for the image creation." 8 78
         return 0
+    fi
+}
+
+# Tries to download an updated base image and if yes asks for updating
+# the RosBE image
+updDockerBaseImg(){
+    basImgCurr=`docker pull ${dckrBaseImg}|grep "Image is up to date for"|wc -l`
+    if [ "$basImgCurr" = "1" ]; then
+        whiptail --title "Base image not updated" --msgbox "This can be because simply there is no update or the registry could not be contacted." 8 78
+    elif (whiptail --title "Base image updated" --yesno "Do you wish to update the depending RosBE image? (recommended)" 8 78) then
+            buildDockerImg
+    else
+        whiptail --title "Problems updating base image" --msgbox "Problems occured updating Docker base image." 8 78
     fi
 }
 
@@ -382,22 +398,24 @@ menuOptMods(){
 # Main menu
 menuMain(){
     choice=$(whiptail --title "Prepare ReactOS compilation" --menu "Choose an option" 25 78 16 \
-    "Opt. modules" "Optional modules menu..." \
-    "Add RosBE"    "Add ReactOS Build Environment." \
-    "Build Docker" "Build RosBE Docker image." \
-    "Run Docker"   "Run RosBE Docker build environment." \
-    "Clear DLs"    "Clear downloads folder" \
-    "Exit"         "Exit." \
+    "Opt. modules"  "Optional modules menu..." \
+    "Add RosBE"     "Add ReactOS Build Environment." \
+    "Build Docker"  "Build RosBE Docker image." \
+    "Update Docker" "Update Docker base image" \
+    "Run Docker"    "Run RosBE Docker build environment." \
+    "Clear DLs"     "Clear downloads folder" \
+    "Exit"          "Exit." \
     3>&2 2>&1 1>&3)
 
     selection=$(echo $choice | sed 's/ //g')
     case "${selection}" in
-        "Opt.modules") menuOptMods;;
-        "AddRosBE")    getRosbe;;
-        "BuildDocker") buildDockerImg;;
-        "RunDocker")   runDockerImg;;
-        "ClearDLs")    ClearDls;;
-        "Exit")        exit 0;;
+        "Opt.modules")  menuOptMods;;
+        "AddRosBE")     getRosbe;;
+        "BuildDocker")  buildDockerImg;;
+        "UpdateDocker") updDockerBaseImg;;
+        "RunDocker")    runDockerImg;;
+        "ClearDLs")     ClearDls;;
+        "Exit")         exit 0;;
     esac
     return $?
 }

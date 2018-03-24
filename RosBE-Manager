@@ -303,6 +303,274 @@ ClearDls(){
     rm -r ${dlfolder};
 }
 
+# Search for untranslated and translate
+translateUntr(){
+    declare -a langCode=(
+        af-ZA 'Afrikaans (South Africa)'
+        sq-AL 'Albanian (Albania)'
+        gs-FR 'Alsatian (France)'
+        am-ET 'Amharic (Ethiopia)'
+        ar-DZ 'Arabic (Algeria)'
+        ar-BH 'Arabic (Bahrain)'
+        ar-EG 'Arabic (Egypt)'
+        ar-IQ 'Arabic (Iraq)'
+        ar-JO 'Arabic (Jordan)'
+        ar-KW 'Arabic (Kuwait)'
+        ar-LB 'Arabic (Lebanon)'
+        ar-LY 'Arabic (Libya)'
+        ar-MA 'Arabic (Morocco)'
+        ar-OM 'Arabic (Oman)'
+        ar-QA 'Arabic (Qatar)'
+        ar-SA 'Arabic (Saudi Arabia)'
+        ar-SY 'Arabic (Syria)'
+        ar-TN 'Arabic (Tunisia)'
+        ar-AE 'Arabic (U.A.E.)'
+        ar-YE 'Arabic (Yemen)'
+        hy-AM 'Armenian (Armenia)'
+        as-IN 'Assamese (India)'
+        az-AZ 'Azerbaijani (Azerbaijan, Cyrillic)'
+        az-AZ 'Azerbaijani (Azerbaijan, Latin)'
+        bn 'Bangla'
+        bn-IN 'Bangla (India)'
+        ba-RU 'Bashkir (Russia)'
+        Ba-Ba 'Basque (Basque)'
+        be-BY 'Belarusian (Belarus)'
+        bs 'Bosnian'
+        bs-BA 'Bosnian (Bosnia and Herzegovina, Cyrillic)'
+        bs-BA 'Bosnian (Bosnia and Herzegovina, Latin)'
+        br-FR 'Breton (France)'
+        bg-BG 'Bulgarian (Bulgaria)'
+        ku-IQ 'Central Kurdish (Iraq)'
+        ch-Ch 'Cherokee (Cherokee)'
+        ca-ES 'Catalan (Spain)'
+        zh-HK 'Chinese (Hong Kong SAR, PRC)'
+        zh-MO 'Chinese (Macao SAR)'
+        zh-SG 'Chinese (Singapore)'
+        zh-Ha 'Chinese (Simplified)'
+        zh-Ha 'Chinese (Traditional)'
+        co-FR 'Corsican (France)'
+        hr 'Croatian'
+        hr-BA 'Croatian (Bosnia and Herzegovina, Latin)'
+        hr-HR 'Croatian (Croatia)'
+        cs-CZ 'Czech (Czech Republic)'
+        da-DK 'Danish (Denmark)'
+        pr-AF 'Dari (Afghanistan)'
+        dv-MV 'Divehi (Maldives)'
+        nl-BE 'Dutch (Belgium)'
+        nl-NL 'Dutch (Netherlands)'
+        en-AU 'English (Australia)'
+        en-BZ 'English (Belize)'
+        en-CA 'English (Canada)'
+        en-02 'English (Caribbean)'
+        en-IN 'English (India)'
+        en-IE 'English (Ireland)'
+        en-IE 'English (Ireland)'
+        en-JM 'English (Jamaica)'
+        en-MY 'English (Malaysia)'
+        en-NZ 'English (New Zealand)'
+        en-PH 'English (Philippines)'
+        en-SG 'English (Singapore)'
+        en-ZA 'English (South Africa)'
+        en-TT 'English (Trinidad and Tobago)'
+        en-GB 'English (United Kingdom)'
+        en-US 'English (United States)'
+        en-ZW 'English (Zimbabwe)'
+        et-EE 'Estonian (Estonia)'
+        fo-FO 'Faroese (Faroe Islands)'
+        fi-PH 'Filipino (Philippines)'
+        fi-FI 'Finnish (Finland)'
+        fr-BE 'French (Belgium)'
+        fr-CA 'French (Canada)'
+        fr-FR 'French (France)'
+        fr-LU 'French (Luxembourg)'
+        fr-MC 'French (Monaco)'
+        fr-CH 'French (Switzerland)'
+        fy-NL 'Frisian (Netherlands)'
+        gl-ES 'Galician (Spain)'
+        ka-GE 'Georgian (Georgia)'
+        de-AT 'German (Austria)'
+        de-DE 'German (Germany)'
+        de-LI 'German (Liechtenstein)'
+        de-LU 'German (Luxembourg)'
+        de-CH 'German (Switzerland)'
+        el-GR 'Greek (Greece)'
+        kl-GL 'Greenlandic (Greenland)'
+        gu-IN 'Gujarati (India)'
+        ha-NG 'Hausa (Nigeria)'
+        ha-US 'Hawiian (United States)'
+        he-IL 'Hebrew (Israel)'
+        hi-IN 'Hindi (India)'
+        hu-HU 'Hungarian (Hungary)'
+        is-IS 'Icelandic (Iceland)'
+        ig-NG 'Igbo (Nigeria)'
+        id-ID 'Indonesian (Indonesia)'
+        iu-CA 'Inuktitut (Canada)'
+        iu-CA 'Inuktitut (Canada)'
+        ga-IE 'Irish (Ireland)'
+        xh-ZA 'isiXhosa (South Africa)'
+        zu-ZA 'isiZulu (South Africa)'
+        it-IT 'Italian (Italy)'
+        it-CH 'Italian (Switzerland)'
+        ja-JP 'Japanese (Japan)'
+        kn-IN 'Kannada (India)'
+        kk-KZ 'Kazakh (Kazakhstan)'
+        kh-KH 'Khmer (Cambodia)'
+        qu-GT "K'iche (Guatemala)"
+        rw-RW 'Kinyarwanda (Rwanda)'
+        ko-IN 'Konkani (India)'
+        ko-KR 'Korean (Korea)'
+        ky-KG 'Kyrgyz (Kyrgyzstan)'
+        lo-LA 'Lao (Lao PDR)'
+        lv-LV 'Latvian (Latvia)'
+        lt-LT 'Lithuanian (Lithuanian)'
+        ds-DE 'Lower Sorbian (Germany)'
+        lb-LU 'Luxembourgish (Luxembourg)'
+        mk-FY 'Macedonian (Macedonia)'
+        ms-BN 'Malay (Brunei Darassalam)'
+        ms-MY 'Malay (Malaysia)'
+        ml-IN 'Malayalam (India)'
+        mt-MT 'Maltese (Malta)'
+        mi-NZ 'Maori (New Zealand)'
+        ar-CL 'Mapudungun (Chile)'
+        mr-IN 'Marathi (India)'
+        mo-CA 'Mohawk (Canada)'
+        mn-MN 'Mongolian (Mongolia, Cyrillic)'
+        mn-MN 'Mongolian (Mongolia, Mong)'
+        ne-NP 'Nepali (Nepal)'
+        ne-IN 'Nepali (India)'
+        no-NO 'Norwegian (Bokmål, Norway)'
+        no-NO 'Norwegian (Nynorsk, Norway)'
+        oc-FR 'Occitan (France)'
+        or-IN 'Odia (India)'
+        ps-AF 'Pashto (Afghanistan)'
+        fa-IR 'Persian (Iran)'
+        pl-PL 'Polish (Poland)'
+        pt-BR 'Portuguese (Brazil)'
+        pt-PT 'Portuguese (Portugal)'
+        ff-SN 'Pular (Senegal)'
+        pa-IN 'Punjabi (India, Gurmukhi script)'
+        pa-PK 'Punjabi (Pakistan, Arabic script)'
+        qu-BO 'Quechua (Bolivia)'
+        qu-EC 'Quechua (Ecuador)'
+        qu-PE 'Quechua (Peru)'
+        ro-RO 'Romanian (Romania)'
+        rm-CH 'Romansh (Switzerland)'
+        ru-RU 'Russian (Russia)'
+        sa-RU 'Sakha (Russia)'
+        sm-FI 'Sami (Inari, Finland)'
+        sm-NO 'Sami (Lule, Norway)'
+        sm-SE 'Sami (Lule, Sweden)'
+        se-FI 'Sami (Northern, Finland)'
+        se-NO 'Sami (Northern, Norway)'
+        se-SE 'Sami (Northern, Sweden)'
+        sm-FI 'Sami (Skolt, Finland)'
+        sm-NO 'Sami (Southern, Norway)'
+        sm-SE 'Sami (Southern, Sweden)'
+        sa-IN 'Sanskrit (India)'
+        sr 'Serbian'
+        sr-BA 'Serbian (Bosnia and Herzegovina, Cyrillic)'
+        sr-BA 'Serbian (Bosnia and Herzegovina, Latin)'
+        sr-HR 'Serbian (Croatia)'
+        sr-fo 'Serbian (Serbia and Montenegro)'
+        sr-fo 'Serbian (Serbia and Montenegro)'
+        ns-ZA 'Sesotho sa Leboa (South Africa)'
+        tn-BW 'Setswana / Tswana (Botswana)'
+        tn-ZA 'Setswana / Tswana (South Africa)'
+        sd-PK 'Sindhi (Pakistan)'
+        si-LK 'Sinhala (Sri Lanka)'
+        sk-SK 'Slovak (Slovakia)'
+        sl-SI 'Slovenian (Slovenia)'
+        es-AR 'Spanish (Argentina)'
+        es-BO 'Spanish (Bolivia)'
+        es-CL 'Spanish (Chile)'
+        es-CO 'Spanish (Colombia)'
+        es-CR 'Spanish (Costa Rica)'
+        es-DO 'Spanish (Dominican Republic)'
+        es-EC 'Spanish (Ecuador)'
+        es-SV 'Spanish (El Salvador)'
+        es-GT 'Spanish (Guatemala)'
+        es-HN 'Spanish (Honduras)'
+        es-MX 'Spanish (Mexico)'
+        es-NI 'Spanish (Nicaragua)'
+        es-PA 'Spanish (Panama)'
+        es-PY 'Spanish (Paraguay)'
+        es-PE 'Spanish (Peru)'
+        es-PR 'Spanish (Puerto Rico)'
+        es-ES 'Spanish (Spain, Modern Sort)'
+        es-ES 'Spanish (Spain, Traditional Sort)'
+        es-US 'Spanish (United States)'
+        es-UY 'Spanish (Uruguay)'
+        es-VE 'Spanish (Venezuela)'
+        sw-KE 'Swahili (Kenya)'
+        sv-FI 'Swedish (Finland)'
+        sv-SE 'Swedish (Sweden)'
+        sv-SE 'Swedish (Sweden)'
+        sy-SY 'Syriac (Syria)'
+        tg-TJ 'Tajik (Tajikistan, Cyrillic)'
+        tz-DZ 'Tamazight (Algeria, Latin)'
+        ta-IN 'Tamil (India)'
+        ta-LK 'Tamil (Sri Lanka)'
+        tt-RU 'Tatar (Russia)'
+        te-IN 'Telugu (India)'
+        th-TH 'Thai (Thailand)'
+        bo-CN 'Tibetan (PRC)'
+        ti-ER 'Tigrinya (Eritrea)'
+        ti-ET 'Tigrinya (Ethiopia)'
+        tr-TR 'Turkish (Turkey)'
+        tk-TM 'Turkmen (Turkmenistan)'
+        uk-UA 'Ukrainian (Ukraine)'
+        hs-DE 'Upper Sorbian (Germany)'
+        ur-re 'Urdu'
+        ur-PK 'Urdu (Pakistan)'
+        ug-CN 'Uyghur (PRC)'
+        uz-UZ 'Uzbek (Uzbekistan, Cyrillic)'
+        uz-UZ 'Uzbek (Uzbekistan, Latin)'
+        ca-ES 'Valencian (Valencia)'
+        vi-VN 'Vietnamese (Vietnam)'
+        cy-GB 'Welsh (United Kingdom)'
+        wo-SN 'Wolof (Senegal)'
+        ii-CN 'Yi (PRC)'
+        yo-NG 'Yoruba (Nigeria)'
+    )
+    
+    srcLang="en-US"
+    
+    # Ask for source language
+    srcLang=$(whiptail --title "Source language" --menu "Source language definitions." --default-item ${srcLang} 25 78 16 "${langCode[@]}" 3>&2 2>&1 1>&3)
+    # Ask for destination language
+    dstLang=$(whiptail --title "Source language" --menu "Source language definitions." 25 78 16 "${langCode[@]}" 3>&2 2>&1 1>&3)
+
+    # Search for folders with srcLang.rc and no dstLang.rc
+    if [ "$srcLang" = "" ]; then
+        exit 1
+    fi
+    if [ "$dstLang" = "" ]; then
+        exit 1
+    fi
+    declare -a arrLang=()
+    whiptail --title "Search for folders" --msgbox "Will search for folders with ${srcLang}.rc and with no ${dstLang}.rc. Press <Enter>." 8 78
+    # Do the actual search and fill array
+    for i in $(find reactos/ -type d -exec test -e '{}'/${srcLang}.rc -a ! \( -e '{}'/${dstLang}.rc \) \; -print|sort); do
+        declare -a arrTmp=("${i}" "");
+        arrLang=( "${arrLang[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+    done
+
+    # Ask to select folder from search result, let edit and if OK copy to final location
+    choiceTF=$(whiptail --title "Translate" --menu "Choose what to translate" 25 78 16 "${arrLang[@]}"  3>&2 2>&1 1>&3)
+    arrLang=""
+    if [ "$choiceTF" != "" ]; then
+        cp ${choiceTF}/${srcLang}.rc ${dlfolder}/${dstLang}.rc
+        editor ${dlfolder}/${dstLang}.rc
+        if (whiptail --title "OK to use?" --yesno "OK to use the translated file?" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
+        then
+            mv ${dlfolder}/${dstLang}.rc ${choiceTF}/${dstLang}.rc;
+        else 
+            rm ${dlfolder}/${dstLang}.rc;
+        fi
+    fi
+}
+
 # Adaptive menu for optional modules
 menuOptMods(){
     until [ "$choiceOM" = "Back" ]; do
@@ -403,6 +671,7 @@ menuMain(){
     "Build Docker"  "Build RosBE Docker image." \
     "Update Docker" "Update Docker base image" \
     "Run Docker"    "Run RosBE Docker build environment." \
+    "Transl Untr"    "Translate untranslated" \
     "Clear DLs"     "Clear downloads folder" \
     "Exit"          "Exit." \
     3>&2 2>&1 1>&3)
@@ -414,6 +683,7 @@ menuMain(){
         "BuildDocker")  buildDockerImg;;
         "UpdateDocker") updDockerBaseImg;;
         "RunDocker")    runDockerImg;;
+        "TranslUntr")  translateUntr;;
         "ClearDLs")     ClearDls;;
         "Exit")         exit 0;;
     esac

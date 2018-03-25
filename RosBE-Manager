@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Prepare ReactOS sources for compilation on a Linux system
-# Version: 1.0 2018-03-13
+# Version: 1.1 2018-03-24
 # Author: Silvério Santos
 
 # Name of the folder to download into

@@ -3,10 +3,21 @@ RosBE-Manager
 
 Purpose
 -------
-To compile the ReactOS operating system on Linux.<br />
+<p>Easily build the ReactOS operating system on Linux and helps translating.</p>
 Downloads and installs the ReactOS Build Environment (RosBE), the ReactOS
-source files with git and  creates and runs a Docker image providing the 
-RosBE interface. Then follow the instructions [here](https://www.reactos.org/wiki/Building_ReactOS#Linux.2FUnix).
+source files with git and creates and runs a Docker image providing
+RosBE. Then follow the instructions [here](https://www.reactos.org/wiki/Building_ReactOS#Linux.2FUnix).
+
+Features
+--------
+* Pulls from git repository
+* Downloads, configures and runs the ReactOS Build Environment in an Untuntu based Docker container
+* Adds and removes optional modules to integrate into built reactos images, e.g.:
+  * Wine Gecko
+  * Microsoft (c) Foundation Classes
+  * VirtIO network drivers
+  * AC97 sound driver
+* Searches for untranslated resources and opens them for translation
 
 Usage
 -----

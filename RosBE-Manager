@@ -1,17 +1,24 @@
 #!/bin/bash
 
-# Prepare ReactOS sources for compilation on a Linux system
-# Version: 1.1 2018-03-24
+# ReactOS compilation on a Linux system
+# Version: 1.3 2018-04-12
 # Author: Silvério Santos
 
 # Name of the folder to download into
-dlfolder=downloads
+dlfolder="downloads"
+# Directory the ReactOS source code was checked out with Git
+gitCheckoutDir="reactos"
+# Subfolder for optional module files
+optModulesBase="modules/optional"
 # Path to the optional modules
-optmodules=reactos/modules/optional/
+optmodules="${gitCheckoutDir}/$optModulesBase"
 # RosBE file
 rosbeFile=RosBE-Unix-2.1.2.tar.bz2
 # Docker base image
 dckrBaseImg=ubuntu:16.04
+# DFF file name
+dffFolder="${gitCheckoutDir}/output-MinGW-i386/reactos/boot/bootdata/packages"
+
 
 # Check for tools required by this script, POSIX compatible method
 chkScriptTools(){
@@ -101,6 +108,91 @@ dlIfNotExist(){
     fi
 }
 
+# Add a text line after a matching text into a text file
+txtInFile(){
+    # Text line to add
+    txt=$1
+    # File to add text to
+    fil=$2
+    # Add txt text line after first occurence of this
+    after="\; Optional\/proprietary files"
+
+    if ! grep -qx "$text" ${fil}
+    then
+        sed -i "/${after}/a ${txt}" ${fil}
+    fi
+}
+
+# Remove a text line from a text file
+txtOutFile(){
+    # Text line to delete
+    txt=$1
+    # File to delete text from
+    fil=$2
+
+    if grep -qx "$text" ${fil}
+    then
+        # Use alternative delimiter "|" to match txt containing "/"
+        sed -i "\|^${txt}$|d" ${fil}
+    fi
+}
+
+# Copy a file to the optional modules folder and configure dff file to
+# be included in the image build process
+newOptDrvFile(){
+    # File to add to optional modules
+    file=$1
+    # Code in dff file the file is assigned to
+    dirCode=$2
+    # Folder to copy the files from
+    fromDir=$3\
+
+    # Update dff file
+    text="\"${optModulesBase}/${file}\" ${dirCode} optional"
+    txtInFile "${text}" "${dffFolder}/reactos.dff"
+
+    # Copy file to optional modules folder
+    if [ ! -e ${optmodules}/${file} ]; then
+        cp ${fromDir}${file} ${optmodules}
+    fi
+}
+
+# Remove a file from the optional modules folder and remove from the
+# dff file to not be regarded in the image build process
+remOptDrvFile(){
+    # File to remove from optional modules
+    file=$1
+    # Code in dff file the file is assigned to
+    dirCode=$2
+
+    # Update dff file
+    text="\"${optModulesBase}/${file}\" ${dirCode} optional"
+    txtOutFile "${text}" "${dffFolder}/reactos.dff"
+
+    # Delete file from optional modules folder
+    if [ -e ${optmodules}/${file} ]; then
+        rm ${optmodules}/${file}
+    fi
+}
+
+# Make sure the .dff file is available and writable
+chkDffFile(){
+    if [ ! -d "${gitCheckoutDir}/output-MinGW-i386" ]; then
+        if (whiptail --title "Run Docker image?" --yesno "To create the configuration file for non-standard optional modules the configure.sh command has to be run at least once. Do you want to run the RosBE Docker container so you can run ./configure.sh and ninja in output-MinGW-i386/reactos/ (recommended)" 10 78) then
+            runDockerImg;
+        fi
+    elif [ ! -w "${dffFolder}/" ]; then
+        whiptail --title "Root rights" --msgbox "Administrative rights needed to be able to configure non-standard optional modules. You might have to enter your password to grant the mount command sudo rights. Press Enter to continue." 10 78
+        sudo chmod g+rw ${dffFolder}
+        sudo chown :`id -gn` ${dffFolder}
+        if [ -d "${dffFolder}/reactos.dff" ]; then
+            sudo chown :`id -gn` ${dffFolder}/reactos.dff;
+        else
+            whiptail --title "File reactos.dff not found" --msgbox "Please " 10 78
+        fi
+    fi
+}
+
 # Get Linux ReactOS Build environment
 getRosbe(){
     # Only download if file not exists
@@ -109,6 +201,8 @@ getRosbe(){
         wget -P ${dlfolder} https://downloads.sourceforge.net/reactos/${rosbeFile}
     fi
 }
+
+# ********** Optional modules **********
 
 # For integration into image: get Gecko file
 getGecko(){
@@ -249,6 +343,55 @@ remAc97(){
     fi
 }
 
+# Add NIC driver: Intel (R) 82579LM Gigabit Network
+addItl82579(){
+    drvFolder="${dlfolder}/Intel82579/win32/"
+    if [ ! -d ${drvFolder} ]; then
+        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78;
+    fi
+    newOptDrvFile e1C5132.sys 2 ${drvFolder}
+    newOptDrvFile e1C5132.inf 6 ${drvFolder}
+    newOptDrvFile e1C5132.cat 6 ${drvFolder}
+    newOptDrvFile e1Cmsg.dll 1 ${drvFolder}
+    newOptDrvFile NicCo2.dll 1 ${drvFolder}
+    newOptDrvFile NicinstC.dll 1 ${drvFolder}
+}
+
+# Remove NIC driver: Intel (R) 82579LM Gigabit Network
+remItl82579(){
+    remOptDrvFile e1C5132.sys 2
+    remOptDrvFile e1C5132.inf 6
+    remOptDrvFile e1C5132.cat 6
+    remOptDrvFile e1Cmsg.dll 1
+    remOptDrvFile NicCo2.dll 1
+    remOptDrvFile NicinstC.dll 1
+}
+
+# Add NIC driver: Broadcom (c) BCM943228HM4L 802.11 a/b/g/n 2x2 WiFi Adapter
+addBcm943228HM4L(){
+    drvFolder="${dlfolder}/BCM943228HM4L/WinXP/"
+    if [ ! -d ${drvFolder} ]; then
+        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78;
+    fi
+    newOptDrvFile bcmwlcoi.dll 1 ${drvFolder}
+    newOptDrvFile bcmwl5.sys 2 ${drvFolder}
+    newOptDrvFile bcmwl5.inf 6 ${drvFolder}
+    newOptDrvFile bcm43xx.cat 6 ${drvFolder}
+}
+
+# Add NIC driver: Broadcom (c) BCM943228HM4L 802.11 a/b/g/n 2x2 WiFi Adapter
+remBcm943228HM4L(){
+    remOptDrvFile bcmwlcoi.dll 1
+    remOptDrvFile bcmwl5.sys 2
+    remOptDrvFile bcmwl5.inf 6
+    remOptDrvFile bcm43xx.cat 6
+}
+
+#addBcm943228HM4L
+#remBcm943228HM4L
+
+# ********** Docker **********
+
 # Build a Docker image with the RosBE environment
 buildDockerImg(){
     chkDockerfile
@@ -299,9 +442,11 @@ runDockerImg(){
 }
 
 # Delete the downloads folder
-ClearDls(){
+clearDls(){
     rm -r ${dlfolder};
 }
+
+# ********** Translation **********
 
 # Search for untranslated and translate
 translateUntr(){
@@ -571,6 +716,8 @@ translateUntr(){
     fi
 }
 
+# ********** Menus **********
+
 # Adaptive menu for optional modules
 menuOptMods(){
     until [ "$choiceOM" = "Back" ]; do
@@ -638,54 +785,94 @@ menuOptMods(){
         fi
         array=( "${array[@]}" "${arrTmp[@]}" )
         arrTmp=""
-                
+                               
         # Display menu
         choiceOM=$(whiptail --title "Optional modules (adaptive)" --menu "Choose what module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
 
         selectionOM=$(echo $choiceOM | sed 's/ //g')
         case "${selectionOM}" in
-            "AddGecko")     getGecko;;
-            "RemoveGecko")  remGecko;;
-            "AddMFC")       getMfc;;
-            "RemoveMFC")    remMfc;;
-            "AddNetKVM")    getNetkvm;;
-            "RemoveNetKVM") remNetkvm;;
-            "AddVB5")       getVb5;;
-            "RemoveVB5")    remVb5;;
-            "AddVB6")       getVb6;;
-            "RemoveVB6")    remVb6;;
-            "AddB57")       getB57;;
-            "RemoveB57")    remB57;;
-            "AddAC97")      getAc97;;
-            "RemoveAC97")   remAc97;;
+            "AddGecko")      getGecko;;
+            "RemoveGecko")   remGecko;;
+            "AddMFC")        getMfc;;
+            "RemoveMFC")     remMfc;;
+            "AddNetKVM")     getNetkvm;;
+            "RemoveNetKVM")  remNetkvm;;
+            "AddVB5")        getVb5;;
+            "RemoveVB5")     remVb5;;
+            "AddVB6")        getVb6;;
+            "RemoveVB6")     remVb6;;
+            "AddB57")        getB57;;
+            "RemoveB57")     remB57;;
+            "AddAC97")       getAc97;;
+            "RemoveAC97")    remAc97;;
         esac
     done
     choiceOM=""
 }
 
+# Adaptive menu for non-stadard optional modules
+menuNSOptMods(){
+    chkDffFile
+    until [ "$choiceNOM" = "Back" ]; do
+        declare -a array=("Back" "<<Back to main module.")
+
+        # Intel 82579LM
+        if [ -e ${optmodules}/e1C5132.sys ]; then
+            declare -a arrTmp=("Remove 82579LM" "Remove Intel 82579LM NIC driver.")
+        else
+            declare -a arrTmp=("Add 82579LM" "Add Intel 82579LM NIC driver.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+
+        # Broadcom (c) BCM943228HM4L 802.11 a/b/g/n 2x2 WiFi Adapter
+        if [ -e ${optmodules}/bcmwl5.sys ]; then
+            declare -a arrTmp=("Remove BCM943228HM4L" "Remove Broadcom BCM943228HM4L WiFi NIC driver.")
+        else
+            declare -a arrTmp=("Add BCM943228HM4L" "Add Broadcom BCM943228HM4L WiFi NIC driver.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+
+        # Display menu
+        choiceNOM=$(whiptail --title "Non-standard optional modules (adaptive)" --menu "Choose what non-standard optional module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
+
+        selectionNOM=$(echo $choiceNOM | sed 's/ //g')
+        case "${selectionNOM}" in
+            "Add82579LM")          addItl82579;;
+            "Remove82579LM")       remItl82579;;
+            "AddBCM943228HM4L")    addBcm943228HM4L;;
+            "RemoveBCM943228HM4L") remBcm943228HM4L;;
+        esac
+    done
+    choiceNOM=""
+}
+
 # Main menu
 menuMain(){
     choice=$(whiptail --title "Prepare ReactOS compilation" --menu "Choose an option" 25 78 16 \
-    "Opt. modules"  "Optional modules menu..." \
-    "Add RosBE"     "Add ReactOS Build Environment." \
-    "Build Docker"  "Build RosBE Docker image." \
-    "Update Docker" "Update Docker base image" \
-    "Run Docker"    "Run RosBE Docker build environment." \
-    "Transl Untr"    "Translate untranslated" \
-    "Clear DLs"     "Clear downloads folder" \
-    "Exit"          "Exit." \
+    "Opt. modules"        "Optional modules menu..." \
+    "Opt. modules NonStd" "Non-standard optional modules" \
+    "Add RosBE"           "Add ReactOS Build Environment." \
+    "Build Docker"        "Build RosBE Docker image." \
+    "Update Docker"       "Update Docker base image" \
+    "Run Docker"          "Run RosBE Docker build environment." \
+    "Transl Untr"         "Translate untranslated" \
+    "Clear DLs"           "Clear downloads folder" \
+    "Exit"                "Exit." \
     3>&2 2>&1 1>&3)
 
     selection=$(echo $choice | sed 's/ //g')
     case "${selection}" in
-        "Opt.modules")  menuOptMods;;
-        "AddRosBE")     getRosbe;;
-        "BuildDocker")  buildDockerImg;;
-        "UpdateDocker") updDockerBaseImg;;
-        "RunDocker")    runDockerImg;;
-        "TranslUntr")  translateUntr;;
-        "ClearDLs")     ClearDls;;
-        "Exit")         exit 0;;
+        "Opt.modules")       menuOptMods;;
+        "Opt.modulesNonStd") menuNSOptMods;;
+        "AddRosBE")          getRosbe;;
+        "BuildDocker")       buildDockerImg;;
+        "UpdateDocker")      updDockerBaseImg;;
+        "RunDocker")         runDockerImg;;
+        "TranslUntr")        translateUntr;;
+        "ClearDLs")          clearDls;;
+        "Exit")              exit 0;;
     esac
     return $?
 }

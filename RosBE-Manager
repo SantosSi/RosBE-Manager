@@ -145,7 +145,7 @@ newOptDrvFile(){
     # Code in dff file the file is assigned to
     dirCode=$2
     # Folder to copy the files from
-    fromDir=$3\
+    fromDir="$3"\
 
     # Update dff file
     text="\"${optModulesBase}/${file}\" ${dirCode} optional"
@@ -153,7 +153,7 @@ newOptDrvFile(){
 
     # Copy file to optional modules folder
     if [ ! -e ${optmodules}/${file} ]; then
-        cp ${fromDir}${file} ${optmodules}
+        cp "${fromDir}${file}" ${optmodules}
     fi
 }
 
@@ -347,14 +347,15 @@ remAc97(){
 addItl82579(){
     drvFolder="${dlfolder}/Intel82579/win32/"
     if [ ! -d ${drvFolder} ]; then
-        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78;
+        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78
+        return;
     fi
-    newOptDrvFile e1C5132.sys 2 ${drvFolder}
-    newOptDrvFile e1C5132.inf 6 ${drvFolder}
-    newOptDrvFile e1C5132.cat 6 ${drvFolder}
-    newOptDrvFile e1Cmsg.dll 1 ${drvFolder}
-    newOptDrvFile NicCo2.dll 1 ${drvFolder}
-    newOptDrvFile NicinstC.dll 1 ${drvFolder}
+    newOptDrvFile e1C5132.sys 2 "${drvFolder}"
+    newOptDrvFile e1C5132.inf 6 "${drvFolder}"
+    newOptDrvFile e1C5132.cat 6 "${drvFolder}"
+    newOptDrvFile e1Cmsg.dll 1 "${drvFolder}"
+    newOptDrvFile NicCo2.dll 1 "${drvFolder}"
+    newOptDrvFile NicinstC.dll 1 "${drvFolder}"
 }
 
 # Remove NIC driver: Intel (R) 82579LM Gigabit Network
@@ -371,15 +372,16 @@ remItl82579(){
 addBcm943228HM4L(){
     drvFolder="${dlfolder}/BCM943228HM4L/WinXP/"
     if [ ! -d ${drvFolder} ]; then
-        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78;
+        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78
+        return;
     fi
-    newOptDrvFile bcmwlcoi.dll 1 ${drvFolder}
-    newOptDrvFile bcmwl5.sys 2 ${drvFolder}
-    newOptDrvFile bcmwl5.inf 6 ${drvFolder}
-    newOptDrvFile bcm43xx.cat 6 ${drvFolder}
+    newOptDrvFile bcmwlcoi.dll 1 "${drvFolder}"
+    newOptDrvFile bcmwl5.sys 2 "${drvFolder}"
+    newOptDrvFile bcmwl5.inf 6 "${drvFolder}"
+    newOptDrvFile bcm43xx.cat 6 "${drvFolder}"
 }
 
-# Add NIC driver: Broadcom (c) BCM943228HM4L 802.11 a/b/g/n 2x2 WiFi Adapter
+# Remove NIC driver: Broadcom (c) BCM943228HM4L 802.11 a/b/g/n 2x2 WiFi Adapter
 remBcm943228HM4L(){
     remOptDrvFile bcmwlcoi.dll 1
     remOptDrvFile bcmwl5.sys 2
@@ -387,8 +389,25 @@ remBcm943228HM4L(){
     remOptDrvFile bcm43xx.cat 6
 }
 
-#addBcm943228HM4L
-#remBcm943228HM4L
+# Add TPM driver: Infineon TPM
+addIfxTpm(){
+    drvFolder="${dlfolder}/InfineonTpm/TPM Driver/"
+    if [ ! -d "${drvFolder}" ]; then
+        whiptail --title "Driver folder does not exist" --msgbox "Please copy the driver files into ${drvFolder}" 8 78
+        return;
+    fi
+
+    newOptDrvFile ifxtpm.sys 2 "${drvFolder}"
+    newOptDrvFile ifxtpm.inf 6 "${drvFolder}"
+    newOptDrvFile ifxtpm.cat 6 "${drvFolder}"
+}
+
+# Remove TPM driver Infineon TPM
+remIfxTpm(){
+    remOptDrvFile ifxtpm.sys 2
+    remOptDrvFile ifxtpm.inf 6
+    remOptDrvFile ifxtpm.cat 6
+}
 
 # ********** Docker **********
 
@@ -834,6 +853,15 @@ menuNSOptMods(){
         array=( "${array[@]}" "${arrTmp[@]}" )
         arrTmp=""
 
+        # Infineon TPM
+        if [ -e ${optmodules}/ifxtpm.sys ]; then
+            declare -a arrTmp=("Remove Infineon TPM" "Remove Infineon TPM driver.")
+        else
+            declare -a arrTmp=("Add Infineon TPM" "Add Infineon TPM driver.")
+        fi
+        array=( "${array[@]}" "${arrTmp[@]}" )
+        arrTmp=""
+
         # Display menu
         choiceNOM=$(whiptail --title "Non-standard optional modules (adaptive)" --menu "Choose what non-standard optional module to add" 25 78 16 "${array[@]}"  3>&2 2>&1 1>&3)
 
@@ -843,6 +871,8 @@ menuNSOptMods(){
             "Remove82579LM")       remItl82579;;
             "AddBCM943228HM4L")    addBcm943228HM4L;;
             "RemoveBCM943228HM4L") remBcm943228HM4L;;
+            "AddInfineonTPM")      addIfxTpm;;
+            "RemoveInfineonTPM")   remIfxTpm;;
         esac
     done
     choiceNOM=""
